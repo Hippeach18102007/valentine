@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Đăng nhập Valentine</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
+    <style>
+        /* Hiệu ứng trái tim đập */
+        @keyframes heartbeat {
+            0% { transform: scale(1); }
+            25% { transform: scale(1.1); }
+            50% { transform: scale(1); }
+            75% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        .heart-beat { animation: heartbeat 1.5s infinite; }
+
+        /* Hiệu ứng mờ dần khi tắt màn hình chào */
+        .fade-out { opacity: 0; pointer-events: none; transition: opacity 1s ease-out; }
+
+        /* Giấu Youtube đi (nhưng vẫn để nó tồn tại để phát tiếng) */
+        #youtube-audio-iframe {
+            position: absolute; width: 1px; height: 1px; top: -9999px; left: -9999px; opacity: 0; pointer-events: none;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-pink-200 via-red-200 to-pink-300 min-h-screen flex items-center justify-center relative overflow-hidden">
+
+<div id="youtube-audio-iframe"></div>
+
+<div id="welcome-screen" class="fixed inset-0 z-50 bg-pink-100 flex flex-col items-center justify-center text-center p-4">
+    <div class="text-6xl mb-6 heart-beat">💌</div>
+    <h1 class="text-4xl md:text-5xl text-pink-600 mb-4" style="font-family: 'Dancing Script', cursive;">
+        Love Story
+    </h1>
+    <p class="text-gray-500 mb-8">Đeo tai nghe để cảm nhận yêu thương...</p>
+
+    <button id="btnStart" onclick="startExperience()" disabled
+            class="px-8 py-3 bg-gray-400 text-white rounded-full font-bold text-lg shadow-lg transition transform opacity-50 cursor-not-allowed">
+        ⏳ Đang chuẩn bị trái tim...
+    </button>
+</div>
+
+<div class="bg-white/80 backdrop-blur-md p-8 rounded-2xl shadow-2xl w-96 text-center border-4 border-white/50 relative z-10">
+    <div class="text-6xl mb-4 text-pink-500">💖</div>
+    <h1 class="text-4xl text-pink-600 mb-2" style="font-family: 'Dancing Script', cursive;">Đăng Nhập</h1>
+
+    <p class="text-gray-500 mb-6 text-sm">Nhập email để gửi lời yêu thương</p>
+
+    <form action="/login" method="post" class="space-y-4">
+        <input type="email" name="userEmail" required placeholder="example@gmail.com"
+               class="w-full px-4 py-3 border border-pink-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-400 bg-pink-50 placeholder-pink-300 text-pink-700">
+
+        <button type="submit"
+                class="w-full bg-gradient-to-r from-pink-500 to-red-500 text-white py-3 rounded-xl hover:shadow-lg hover:scale-105 transition transform font-bold">
+            Vào tim anh/em ❤️
+        </button>
+    </form>
+
+    <div onclick="toggleYouTube()" class="mt-4 text-xs text-gray-400 cursor-pointer hover:text-pink-500 select-none">
+        <span id="music-status">🎵 Đang phát nhạc...</span>
+    </div>
+</div>
+
+<script>
+    // --- PHẦN 1: Cấu hình Youtube ---
+    var tag = document.createElement('script');
+    tag.src = "https://www.youtube.com/iframe_api";
+    var firstScriptTag = document.getElementsByTagName('script')[0];
+    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+    var player;
+    var btnStart = document.getElementById("btnStart");
+    var welcomeScreen = document.getElementById("welcome-screen");
+    var musicStatus = document.getElementById("music-status");
+    var isPlaying = false;
+
+    // 👇 ID bài hát (River Flows in You)
+    var songId = '7maJOI3QMu0';
+
+    function onYouTubeIframeAPIReady() {
+        player = new YT.Player('youtube-audio-iframe', {
+            height: '1', width: '1',
+            videoId: songId,
+            playerVars: {
+                'autoplay': 0,      // Không tự chạy, chờ bấm nút
+                'controls': 0,
+                'loop': 1,          // Lặp lại
+                'playlist': songId, // Bắt buộc để loop
+                'origin': window.location.origin // Sửa lỗi local
+            },
+            events: {
+                'onReady': onPlayerReady,
+                'onStateChange': onPlayerStateChange
+            }
+        });
+    }
+
+    // --- PHẦN 2: Xử lý khi Nhạc đã tải xong ---
+    function onPlayerReady(event) {
+        // Lúc này nhạc đã sẵn sàng -> Mở khóa nút bấm
+        btnStart.disabled = false;
+        btnStart.innerText = "Mở Cánh Cửa Trái Tim ❤️";
+
+        // Đổi màu nút sang màu hồng đẹp
+        btnStart.classList.remove("bg-gray-400", "opacity-50", "cursor-not-allowed");
+        btnStart.classList.add("bg-gradient-to-r", "from-pink-500", "to-red-500", "hover:scale-110", "animate-bounce");
+
+        player.setVolume(50);
+    }
+
+    // --- PHẦN 3: Xử lý khi BẤM NÚT (Quan trọng nhất) ---
+    function startExperience() {
+        if (!player) return;
+
+        // 1. Ra lệnh phát nhạc NGAY LẬP TỨC
+        player.playVideo();
+        isPlaying = true;
+        musicStatus.innerText = "🎵 Đang phát nhạc... (Bấm để tắt)";
+
+        // 2. Ẩn màn hình chào đi
+        welcomeScreen.classList.add("fade-out");
+        setTimeout(() => { welcomeScreen.style.display = 'none'; }, 1000);
+    }
+
+    // Xử lý loop (lặp lại)
+    function onPlayerStateChange(event) {
+        if (event.data === YT.PlayerState.ENDED) {
+            player.playVideo();
+        }
+    }
+
+    // Nút tắt/bật thủ công bên trong
+    function toggleYouTube() {
+        if (!player) return;
+        if (isPlaying) {
+            player.pauseVideo();
+            isPlaying = false;
+            musicStatus.innerText = "🔇 Nhạc đã tắt (Bấm để bật)";
+        } else {
+            player.playVideo();
+            isPlaying = true;
+            musicStatus.innerText = "🎵 Đang phát nhạc... (Bấm để tắt)";
+        }
+    }
+</script>
+</body>
+</html>

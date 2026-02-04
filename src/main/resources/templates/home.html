@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Valentine Dashboard</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    /* --- 1. CSS CHO VÒNG QUAY --- */
+    .wheel-wrap { position: relative; width: 300px; height: 300px; border-radius: 50%; border: 10px solid #fce7f3; overflow: hidden; transition: transform 4s cubic-bezier(0.33, 1, 0.68, 1); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+    .wheel-section { position: absolute; width: 50%; height: 50%; top: 50%; left: 50%; transform-origin: 0% 0%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; font-size: 14px; }
+    .sec1 { background-color: #ec4899; transform: rotate(0deg) skew(0deg); }
+    .sec2 { background-color: #f43f5e; transform: rotate(90deg) skew(0deg); }
+    .sec3 { background-color: #ef4444; transform: rotate(180deg) skew(0deg); }
+    .sec4 { background-color: #d946ef; transform: rotate(270deg) skew(0deg); }
+    .label { transform: rotate(45deg) translate(40px, 40px); position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; }
+
+    /* --- 2. CSS THANH CUỘN PLAYLIST --- */
+    #playlist-container::-webkit-scrollbar { width: 6px; }
+    #playlist-container::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+    #playlist-container::-webkit-scrollbar-thumb { background: #f9a8d4; border-radius: 4px; }
+
+    /* --- 3. HIỆU ỨNG ANIMATION --- */
+    @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-10px); } 100% { transform: translateY(0px); } }
+    .avatar-float { animation: float 3s ease-in-out infinite; }
+
+    /* --- 4. CSS SAO ĐÁNH GIÁ --- */
+    .rating-star:hover, .rating-star.active { color: #fbbf24; transform: scale(1.2); }
+    .rating-star { cursor: pointer; transition: all 0.2s; color: #d1d5db; font-size: 2rem; }
+  </style>
+</head>
+<body class="bg-pink-50 min-h-screen p-4 md:p-8 font-sans text-gray-800 pb-24 relative">
+
+<button onclick="openFeedbackModal()"
+        class="fixed bottom-6 right-6 z-40 bg-indigo-600 text-white p-4 rounded-full shadow-lg hover:bg-indigo-700 transition transform hover:scale-110 flex items-center gap-2 font-bold animate-bounce">
+  <i class="fa-solid fa-comment-dots text-xl"></i>
+  <span class="hidden md:inline">Góp ý</span>
+</button>
+
+<div class="max-w-6xl mx-auto flex justify-between items-center mb-8 bg-white p-4 rounded-xl shadow-sm">
+  <div class="flex items-center gap-3">
+    <div class="h-10 w-10 bg-pink-500 rounded-full flex items-center justify-center text-white font-bold">V</div>
+    <span class="font-medium text-gray-600">Xin chào, <b class="text-pink-600" th:text="${userEmail}">User</b></span>
+  </div>
+  <a href="/logout" class="text-sm text-gray-400 hover:text-red-500 transition">Đăng xuất</a>
+</div>
+
+<div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+
+  <div class="space-y-6">
+    <div class="bg-white p-6 rounded-2xl shadow-lg border-b-4 border-pink-400">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-2xl text-pink-600" style="font-family: 'Pacifico', cursive;">Giai điệu tình yêu 🎵</h2>
+        <span class="text-xs font-bold bg-pink-100 text-pink-600 px-2 py-1 rounded-lg">Playlist</span>
+      </div>
+      <div class="relative w-full overflow-hidden rounded-xl shadow-md mb-4" style="padding-top: 56.25%;">
+        <div id="youtube-player" class="absolute top-0 left-0 w-full h-full"></div>
+      </div>
+      <p id="current-song-name" class="text-center font-bold text-gray-700 mb-4 text-lg">Đang tải...</p>
+      <div class="bg-gray-50 rounded-xl p-2 h-48 overflow-y-auto border border-gray-200" id="playlist-container"></div>
+    </div>
+
+    <div class="bg-white p-6 rounded-2xl shadow-lg flex flex-col items-center relative overflow-hidden">
+      <h2 class="text-2xl text-red-500 mb-6" style="font-family: 'Pacifico', cursive;">Thử vận may nhé! 🎁</h2>
+      <div class="absolute top-[80px] z-20 text-4xl text-gray-800 drop-shadow-lg">⬇️</div>
+      <div id="wheel" class="wheel-wrap">
+        <div class="wheel-section sec1"><span class="label">Đi Ăn Tối 🍕</span></div>
+        <div class="wheel-section sec2"><span class="label">Xem Phim 🎬</span></div>
+        <div class="wheel-section sec3"><span class="label">Một Nụ Hôn 💋</span></div>
+        <div class="wheel-section sec4"><span class="label">Mua Quà 👜</span></div>
+      </div>
+      <button onclick="spin()" class="mt-8 px-8 py-3 bg-gradient-to-r from-red-500 to-pink-600 text-white rounded-full font-bold shadow-lg hover:scale-110 transition transform">QUAY NGAY</button>
+    </div>
+  </div>
+
+  <div class="bg-white p-8 rounded-2xl shadow-xl h-fit border-t-8 border-pink-500 relative">
+    <h2 class="text-3xl font-bold text-gray-800 mb-2">Gửi Lời Yêu Thương 💌</h2>
+    <p class="text-gray-400 mb-6 text-sm">Hãy để công nghệ chuyển lời trái tim...</p>
+
+    <div id="wishStatus" class="hidden mb-4 p-4 rounded-xl flex items-center gap-2"></div>
+
+    <form id="wishForm" onsubmit="sendWishAjax(event)" class="space-y-6">
+      <div>
+        <label class="block text-gray-700 font-bold mb-2">Email người ấy:</label>
+        <input type="email" id="wishLoverEmail" required placeholder="nguoiyeu@gmail.com"
+               class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-400 focus:outline-none transition bg-gray-50">
+      </div>
+      <div>
+        <label class="block text-gray-700 font-bold mb-2">Lời nhắn ngọt ngào:</label>
+        <textarea id="wishMessage" rows="6" required placeholder="Anh/Em muốn nói là..."
+                  class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-400 focus:outline-none transition bg-gray-50 resize-none"></textarea>
+      </div>
+      <button type="submit" id="btnSendWish"
+              class="w-full bg-pink-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-pink-700 transition shadow-lg hover:shadow-pink-300/50">
+        Gửi Tình Yêu Đi 🚀
+      </button>
+    </form>
+
+    <div id="wishLoading" class="hidden absolute inset-0 bg-white/80 z-10 flex flex-col items-center justify-center rounded-2xl">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-4 border-pink-600 mb-3"></div>
+      <span class="text-pink-600 font-bold animate-pulse">Đang gửi thư...</span>
+    </div>
+  </div>
+</div>
+
+<div class="max-w-6xl mx-auto bg-white p-8 rounded-2xl shadow-xl border-l-8 border-indigo-500 flex flex-col md:flex-row items-center gap-8 transform hover:scale-[1.01] transition duration-300">
+  <div class="relative group cursor-pointer">
+    <div class="absolute -inset-1 bg-gradient-to-r from-pink-600 to-purple-600 rounded-full blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200"></div>
+    <img src="avatar.jpg" alt="Avatar" class="relative w-36 h-36 object-cover rounded-full border-4 border-white shadow-lg avatar-float">
+  </div>
+  <div class="text-center md:text-left flex-1 space-y-3">
+    <div><h3 class="text-2xl font-bold text-gray-800">Liên Hệ Hợp Tác 🤝</h3><p class="text-indigo-500 font-semibold">Creator / Developer</p></div>
+    <p class="text-gray-500 max-w-2xl">Cảm ơn bạn đã ghé thăm! Nếu bạn thích dự án này hoặc muốn hợp tác phát triển các ý tưởng công nghệ thú vị,
+      đừng ngần ngại kết nối với mình qua các kênh bên dưới nhé.</p>
+    <div class="flex flex-wrap justify-center md:justify-start gap-4 mt-4">
+      <a href="https://facebook.com/nopro.peach" target="_blank" class="flex items-center gap-2 px-6 py-2 bg-[#1877F2] text-white rounded-full font-bold hover:bg-blue-700 transition shadow-md"><i class="fa-brands fa-facebook"></i> Facebook</a>
+      <a href="https://instagram.com/daoduc8059" target="_blank" class="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-purple-500 to-orange-500 text-white rounded-full font-bold hover:opacity-90 transition shadow-md"><i class="fa-brands fa-instagram"></i> Instagram</a>
+      <a href="https://mail.google.com/mail/?view=cm&fs=1&to=daod1068@gmail.com" target="_blank" class="flex items-center gap-2 px-6 py-2 bg-red-500 text-white rounded-full font-bold hover:bg-red-600 transition shadow-md"><i class="fa-solid fa-envelope"></i> Gmail</a>
+    </div>
+  </div>
+</div>
+
+<div id="prizeModal" class="hidden fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all scale-100 animate-bounce-in">
+    <div class="bg-gradient-to-r from-pink-500 to-red-500 p-4 text-center relative">
+      <h3 class="text-white text-xl font-bold" style="font-family: 'Pacifico', cursive;">🎉 Chúc mừng! 🎉</h3>
+      <button onclick="closeModal('prizeModal')" class="absolute top-4 right-4 text-white hover:text-gray-200 text-xl font-bold">&times;</button>
+    </div>
+    <div class="p-6 text-center">
+      <p class="text-gray-600 mb-2">Bạn đã quay trúng phần quà:</p>
+      <div id="modalPrizeName" class="text-2xl font-bold text-pink-600 mb-6 border-2 border-dashed border-pink-300 p-3 rounded-lg bg-pink-50 shadow-inner">???</div>
+      <p class="text-sm text-gray-700 mb-2 text-left font-bold">📧 Nhập Email người nhận quà:</p>
+      <input type="email" id="prizeEmailInput" placeholder="nguoiyeu@gmail.com" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-400 mb-4 bg-gray-50 text-gray-800">
+      <div class="flex gap-3 mt-2">
+        <button onclick="closeModal('prizeModal')" class="flex-1 py-3 bg-gray-100 text-gray-600 rounded-xl font-bold hover:bg-gray-200 transition">Hủy</button>
+        <button onclick="sendPrizeToServer()" id="btnSendPrize" class="flex-1 py-3 bg-pink-600 text-white rounded-xl font-bold hover:bg-pink-700 transition shadow-lg flex justify-center items-center gap-2"><span>Gửi Ngay</span> 🎁</button>
+      </div>
+      <p id="modalStatus" class="mt-4 text-sm font-medium h-5"></p>
+    </div>
+  </div>
+</div>
+
+<div id="feedbackModal" class="hidden fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all scale-100">
+    <div class="bg-indigo-600 p-4 text-center relative">
+      <h3 class="text-white text-xl font-bold">📝 Góp ý / Đánh giá</h3>
+      <button onclick="closeModal('feedbackModal')" class="absolute top-4 right-4 text-white hover:text-gray-200 text-xl font-bold">&times;</button>
+    </div>
+    <div class="p-6">
+      <p class="text-center text-gray-600 mb-4">Bạn cảm thấy trang web này thế nào?</p>
+
+      <div class="flex justify-center gap-2 mb-6" id="starContainer">
+        <i class="fa-solid fa-star rating-star" onclick="setRating(1)"></i>
+        <i class="fa-solid fa-star rating-star" onclick="setRating(2)"></i>
+        <i class="fa-solid fa-star rating-star" onclick="setRating(3)"></i>
+        <i class="fa-solid fa-star rating-star" onclick="setRating(4)"></i>
+        <i class="fa-solid fa-star rating-star" onclick="setRating(5)"></i>
+      </div>
+
+      <textarea id="feedbackContent" rows="4" placeholder="Nhập ý kiến của bạn vào đây (ví dụ: cần thêm bài hát mới, giao diện đẹp hơn...)"
+                class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-400 focus:outline-none bg-gray-50 text-gray-800 mb-4 resize-none"></textarea>
+
+      <button onclick="sendFeedback()" id="btnSendFeedback" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition shadow-lg">Gửi Đánh Giá 🚀</button>
+      <p id="feedbackStatus" class="mt-3 text-center text-sm font-medium h-5"></p>
+    </div>
+  </div>
+</div>
+
+<script>
+  // --- 1. YOUTUBE PLAYER ---
+  var tag = document.createElement('script'); tag.src = "https://www.youtube.com/iframe_api";
+  var firstScriptTag = document.getElementsByTagName('script')[0]; firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+  const playList = [
+    { id: 'aJOTlE1K90k', name: 'Maroon 5 - Girls Like You 🌹' },
+    { id: '2Vv-BfVoq4g', name: 'Ed Sheeran - Perfect 💘' },
+    { id: 'lp-EO5I60KA', name: 'Ed Sheeran - Thinking Out Loud 💃' },
+    { id: 'UfpBr-tqDsE', name: 'Không thời gian - Dương Domic' },
+    { id: '4S3lNyQPVy8', name: 'HÀ ANH TUẤN - Thiên Đường Gọi Tên...' },
+    { id: '_tFPjyhpB6c', name: 'Shiki, Low G - In Love x Có Đôi Điều' },
+    { id: '7i0gz1sVs4w', name: 'Deep Blue' }
+  ];
+  let player, currentSongIndex = 0;
+  function onYouTubeIframeAPIReady() { player = new YT.Player('youtube-player', { height: '100%', width: '100%', videoId: playList[currentSongIndex].id, playerVars: { 'playsinline': 1, 'rel': 0 }, events: { 'onReady': onPlayerReady, 'onStateChange': onPlayerStateChange } }); }
+  function onPlayerReady(event) { updateSongInfo(); renderPlaylist(); }
+  function onPlayerStateChange(event) { if (event.data === YT.PlayerState.ENDED) playNextSong(); }
+  function playNextSong() { currentSongIndex = (currentSongIndex + 1) % playList.length; playSong(currentSongIndex); }
+  function playSong(index) { currentSongIndex = index; if(player && player.loadVideoById) player.loadVideoById(playList[index].id); updateSongInfo(); renderPlaylist(); }
+  function updateSongInfo() { document.getElementById('current-song-name').innerText = playList[currentSongIndex].name; }
+  function renderPlaylist() {
+    const container = document.getElementById('playlist-container'); container.innerHTML = '';
+    playList.forEach((song, index) => {
+      const btn = document.createElement('div');
+      const isActive = index === currentSongIndex;
+      btn.className = `p-3 mb-2 rounded-lg cursor-pointer flex items-center gap-3 transition duration-200 border ${isActive ? 'bg-pink-500 text-white shadow-md border-pink-600' : 'bg-white text-gray-600 hover:bg-pink-50 border-gray-100'}`;
+      btn.innerHTML = `<div class="text-sm font-bold w-6">${index + 1}.</div><div class="text-sm truncate flex-1">${song.name}</div>${isActive ? '<div class="text-xs animate-pulse">▶️</div>' : ''}`;
+      btn.onclick = () => playSong(index); container.appendChild(btn);
+    });
+  }
+
+  // --- 2. LOGIC VÒNG QUAY ---
+  let isSpinning = false, currentPrize = "";
+  function spin() {
+    if (isSpinning) return; isSpinning = true;
+    const wheel = document.getElementById('wheel'); const randomDeg = 1800 + Math.floor(Math.random() * 360);
+    wheel.style.transform = `rotate(${randomDeg}deg)`;
+    setTimeout(() => {
+      const actualDeg = randomDeg % 360;
+      if (actualDeg < 90) currentPrize = "Đi Ăn Tối 🍕"; else if (actualDeg < 180) currentPrize = "Mua Quà 👜"; else if (actualDeg < 270) currentPrize = "Một Nụ Hôn 💋"; else currentPrize = "Xem Phim 🎬";
+      isSpinning = false; openModal('prizeModal', currentPrize);
+    }, 4000);
+  }
+  function openModal(id, prize) {
+    if(prize) document.getElementById('modalPrizeName').innerText = prize;
+    document.getElementById(id).classList.remove('hidden');
+  }
+  function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+  // --- 3. GỬI QUÀ (AJAX) ---
+  function sendPrizeToServer() {
+    const email = document.getElementById('prizeEmailInput').value; const status = document.getElementById('modalStatus'); const btn = document.getElementById('btnSendPrize');
+    if (!email) { status.innerText = "⚠️ Nhập email!"; status.className = "mt-4 text-red-500 font-bold"; return; }
+    btn.disabled = true; btn.innerHTML = "⏳ Đang gửi...";
+    fetch('/api/send-prize', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: email, prize: currentPrize }) })
+            .then(r => r.ok ? r : Promise.reject(r)).then(() => { status.innerText = "✅ Thành công!"; status.className = "mt-4 text-green-600 font-bold"; btn.innerText = "Hoàn tất"; setTimeout(() => { closeModal('prizeModal'); btn.disabled = false; }, 2000); })
+            .catch(() => { status.innerText = "❌ Lỗi!"; status.className = "mt-4 text-red-500 font-bold"; btn.disabled = false; btn.innerText = "Gửi Lại"; });
+  }
+
+  // --- 4. GỬI LỜI CHÚC (AJAX - KHÔNG LOAD LẠI TRANG) ---
+  function sendWishAjax(event) {
+    event.preventDefault(); // QUAN TRỌNG: Chặn reload trang
+    const loverEmail = document.getElementById('wishLoverEmail').value;
+    const message = document.getElementById('wishMessage').value;
+    const statusDiv = document.getElementById('wishStatus');
+    const loadingOverlay = document.getElementById('wishLoading');
+
+    loadingOverlay.classList.remove('hidden');
+    statusDiv.classList.add('hidden');
+
+    fetch('/api/send-wish-ajax', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ loverEmail: loverEmail, message: message })
+    })
+            .then(response => response.json().then(data => ({ status: response.status, body: data })))
+            .then(res => {
+              loadingOverlay.classList.add('hidden');
+              statusDiv.classList.remove('hidden');
+              if (res.status === 200) {
+                statusDiv.className = "mb-4 p-4 bg-green-100 text-green-700 rounded-xl border border-green-200 flex items-center gap-2";
+                statusDiv.innerHTML = `✅ ${res.body.message}`;
+                document.getElementById('wishMessage').value = "";
+              } else {
+                statusDiv.className = "mb-4 p-4 bg-red-100 text-red-700 rounded-xl border border-red-200 flex items-center gap-2";
+                statusDiv.innerHTML = `⚠️ ${res.body.error || "Có lỗi xảy ra"}`;
+              }
+            })
+            .catch(error => {
+              loadingOverlay.classList.add('hidden');
+              statusDiv.classList.remove('hidden');
+              statusDiv.innerHTML = `❌ Lỗi kết nối`;
+            });
+  }
+
+  // --- 5. LOGIC FEEDBACK ---
+  let currentRating = 5;
+  function openFeedbackModal() {
+    document.getElementById('feedbackModal').classList.remove('hidden');
+    setRating(5);
+    document.getElementById('feedbackContent').value = "";
+    document.getElementById('feedbackStatus').innerText = "";
+  }
+  function setRating(rating) {
+    currentRating = rating;
+    const stars = document.querySelectorAll('.rating-star');
+    stars.forEach((star, index) => {
+      if(index < rating) { star.classList.add('active', 'text-yellow-400'); star.classList.remove('text-gray-300'); }
+      else { star.classList.remove('active', 'text-yellow-400'); star.classList.add('text-gray-300'); }
+    });
+  }
+  function sendFeedback() {
+    const content = document.getElementById('feedbackContent').value;
+    const status = document.getElementById('feedbackStatus');
+    const btn = document.getElementById('btnSendFeedback');
+
+    if(!content.trim()) { status.innerText = "⚠️ Nhập nội dung!"; status.className = "mt-3 text-red-500 font-bold text-center"; return; }
+
+    btn.disabled = true; btn.innerHTML = "⏳ Đang gửi...";
+    fetch('/api/send-feedback', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content: content, rating: currentRating }) })
+            .then(r => r.ok ? r.json() : Promise.reject())
+            .then(data => {
+              status.innerText = "✅ " + data.message; status.className = "mt-3 text-green-600 font-bold text-center";
+              btn.innerHTML = "Đã Gửi ✨"; setTimeout(() => { closeModal('feedbackModal'); btn.disabled = false; btn.innerText = "Gửi Đánh Giá 🚀"; }, 2000);
+            })
+            .catch(() => { status.innerText = "❌ Lỗi!"; status.className = "mt-3 text-red-500 font-bold text-center"; btn.disabled = false; btn.innerText = "Gửi Lại"; });
+  }
+</script>
+</body>
+</html>
