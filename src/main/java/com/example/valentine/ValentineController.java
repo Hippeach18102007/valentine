@@ -77,66 +77,27 @@ public class ValentineController {
     @PostMapping("/api/send-feedback")
     @ResponseBody
     public ResponseEntity<?> sendFeedback(@RequestBody Map<String, Object> payload, HttpSession session) {
-        // 1. Lấy thông tin người gửi từ Session
         String userEmail = (String) session.getAttribute("userEmail");
         if (userEmail == null) {
-            return ResponseEntity.status(401).body(Map.of("error", "Vui lòng đăng nhập để đánh giá!"));
+            return ResponseEntity.status(401).body(Map.of("error", "Vui lòng đăng nhập!"));
         }
 
-        // 2. Lấy dữ liệu gửi lên
         String content = (String) payload.get("content");
-        Integer rating = (Integer) payload.get("rating");
 
-        // Email Admin nhận phản hồi (Email của bạn)
+        // Cách lấy Rating an toàn cho cả Integer và Double
+        Object ratingObj = payload.get("rating");
+        Integer rating = 0;
+        if (ratingObj instanceof Number) {
+            rating = ((Number) ratingObj).intValue();
+        }
+
         String adminEmail = "daod1068@gmail.com";
 
         try {
             emailService.sendFeedbackEmail(adminEmail, userEmail, content, rating);
-            return ResponseEntity.ok(Map.of("message", "Cảm ơn bạn đã góp ý!"));
+            return ResponseEntity.ok(Map.of("message", "Cảm ơn bạn!"));
         } catch (Exception e) {
-            e.printStackTrace();
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
-    @PostMapping("/send-wish") // 👈 Phải khớp chính xác với action="/send-wish" bên HTML
-    public String sendWish(@RequestParam("loverEmail") String loverEmail,
-                           @RequestParam("message") String message,
-                           HttpSession session, Model model) {
-        String userEmail = (String) session.getAttribute("userEmail");
-        if (userEmail == null) return "redirect:/";
-
-        try {
-            emailService.sendLoveLetter(loverEmail, message, userEmail);
-            model.addAttribute("success", "💌 Thư đã được gửi đi thành công!");
-        } catch (Exception e) {
-            model.addAttribute("error", "❌ Có lỗi xảy ra: " + e.getMessage());
-        }
-
-        model.addAttribute("userEmail", userEmail);
-        return "home";
-    }
-    @PostMapping("/api/send-wish-ajax")
-    @ResponseBody
-    public ResponseEntity<?> sendWishAjax(@RequestBody Map<String, String> payload, HttpSession session) {
-        String userEmail = (String) session.getAttribute("userEmail");
-        if (userEmail == null) {
-            return ResponseEntity.status(401).body(Map.of("error", "Vui lòng đăng nhập lại!"));
-        }
-
-        String loverEmail = payload.get("loverEmail");
-        String message = payload.get("message");
-
-        if (loverEmail == null || message == null || loverEmail.isEmpty() || message.isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Vui lòng điền đầy đủ thông tin!"));
-        }
-
-        try {
-            // Gọi hàm gửi thư trong EmailService
-            emailService.sendLoveLetter(loverEmail, message, userEmail);
-            return ResponseEntity.ok(Map.of("message", "Thư đã được gửi đi thành công! 💌"));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Lỗi: " + e.getMessage()));
-        }
-    }
-
 }
