@@ -240,7 +240,7 @@
     loadingOverlay.classList.remove('hidden');
     statusDiv.classList.add('hidden');
 
-    fetch('/api/send-wish-ajax', {
+    fetch('[[@{/api/send-wish-ajax}]]', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ loverEmail: loverEmail, message: message })
