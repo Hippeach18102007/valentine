@@ -217,53 +217,118 @@
     if(prize) document.getElementById('modalPrizeName').innerText = prize;
     document.getElementById(id).classList.remove('hidden');
   }
-  function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+  function closeModal(id) {
+    document.getElementById(id).classList.add('hidden');
+    // Reset modal states
+    if(id === 'prizeModal') {
+      document.getElementById('prizeEmailInput').value = '';
+      document.getElementById('modalStatus').innerText = '';
+    }
+  }
 
   // --- 3. GỬI QUÀ (AJAX) ---
   function sendPrizeToServer() {
-    const email = document.getElementById('prizeEmailInput').value; const status = document.getElementById('modalStatus'); const btn = document.getElementById('btnSendPrize');
-    if (!email) { status.innerText = "⚠️ Nhập email!"; status.className = "mt-4 text-red-500 font-bold"; return; }
-    btn.disabled = true; btn.innerHTML = "⏳ Đang gửi...";
-    fetch('/api/send-prize', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: email, prize: currentPrize }) })
-            .then(r => r.ok ? r : Promise.reject(r)).then(() => { status.innerText = "✅ Thành công!"; status.className = "mt-4 text-green-600 font-bold"; btn.innerText = "Hoàn tất"; setTimeout(() => { closeModal('prizeModal'); btn.disabled = false; btn.innerHTML = '<span>Gửi Ngay</span> 🎁'; }, 2000); })
-            .catch(() => { status.innerText = "❌ Lỗi!"; status.className = "mt-4 text-red-500 font-bold"; btn.disabled = false; btn.innerHTML = '<span>Gửi Ngay</span> 🎁'; });
+    const email = document.getElementById('prizeEmailInput').value.trim();
+    const status = document.getElementById('modalStatus');
+    const btn = document.getElementById('btnSendPrize');
+
+    if (!email) {
+      status.innerText = "⚠️ Vui lòng nhập email!";
+      status.className = "mt-4 text-red-500 font-bold";
+      return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = "⏳ Đang gửi...";
+
+    console.log('Sending prize:', { email, prize: currentPrize }); // DEBUG
+
+    fetch('/api/send-prize', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email, prize: currentPrize })
+    })
+            .then(response => {
+              console.log('Prize response status:', response.status); // DEBUG
+              return response.json().then(data => ({ status: response.status, data }));
+            })
+            .then(result => {
+              if (result.status === 200) {
+                status.innerText = "✅ Đã gửi thành công!";
+                status.className = "mt-4 text-green-600 font-bold";
+                btn.innerText = "Hoàn tất";
+                setTimeout(() => {
+                  closeModal('prizeModal');
+                  btn.disabled = false;
+                  btn.innerHTML = '<span>Gửi Ngay</span> 🎁';
+                }, 2000);
+              } else {
+                status.innerText = "❌ " + (result.data.error || "Có lỗi xảy ra");
+                status.className = "mt-4 text-red-500 font-bold";
+                btn.disabled = false;
+                btn.innerHTML = '<span>Gửi Ngay</span> 🎁';
+              }
+            })
+            .catch(error => {
+              console.error('Prize error:', error); // DEBUG
+              status.innerText = "❌ Lỗi kết nối!";
+              status.className = "mt-4 text-red-500 font-bold";
+              btn.disabled = false;
+              btn.innerHTML = '<span>Gửi Ngay</span> 🎁';
+            });
   }
 
   // --- 4. GỬI LỜI CHÚC (AJAX - KHÔNG LOAD LẠI TRANG) ---
   function sendWishAjax(event) {
     event.preventDefault(); // QUAN TRỌNG: Chặn reload trang
-    const loverEmail = document.getElementById('wishLoverEmail').value;
-    const message = document.getElementById('wishMessage').value;
+
+    const loverEmail = document.getElementById('wishLoverEmail').value.trim();
+    const message = document.getElementById('wishMessage').value.trim();
     const statusDiv = document.getElementById('wishStatus');
     const loadingOverlay = document.getElementById('wishLoading');
 
+    // Validation
+    if (!loverEmail || !message) {
+      statusDiv.classList.remove('hidden');
+      statusDiv.className = "mb-4 p-4 bg-red-100 text-red-700 rounded-xl border border-red-200 flex items-center gap-2";
+      statusDiv.innerHTML = `⚠️ Vui lòng điền đầy đủ thông tin!`;
+      return;
+    }
+
     loadingOverlay.classList.remove('hidden');
     statusDiv.classList.add('hidden');
+
+    console.log('Sending wish:', { loverEmail, message }); // DEBUG
 
     fetch('/api/send-wish', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ loverEmail: loverEmail, message: message })
     })
-            .then(response => response.json().then(data => ({ status: response.status, body: data })))
-            .then(res => {
+            .then(response => {
+              console.log('Wish response status:', response.status); // DEBUG
+              return response.json().then(data => ({ status: response.status, data }));
+            })
+            .then(result => {
               loadingOverlay.classList.add('hidden');
               statusDiv.classList.remove('hidden');
-              if (res.status === 200) {
+
+              if (result.status === 200) {
                 statusDiv.className = "mb-4 p-4 bg-green-100 text-green-700 rounded-xl border border-green-200 flex items-center gap-2";
-                statusDiv.innerHTML = `✅ ${res.body.message}`;
+                statusDiv.innerHTML = `✅ ${result.data.message}`;
                 document.getElementById('wishMessage').value = "";
                 document.getElementById('wishLoverEmail').value = "";
               } else {
                 statusDiv.className = "mb-4 p-4 bg-red-100 text-red-700 rounded-xl border border-red-200 flex items-center gap-2";
-                statusDiv.innerHTML = `⚠️ ${res.body.error || "Có lỗi xảy ra"}`;
+                statusDiv.innerHTML = `⚠️ ${result.data.error || "Có lỗi xảy ra"}`;
               }
             })
             .catch(error => {
+              console.error('Wish error:', error); // DEBUG
               loadingOverlay.classList.add('hidden');
               statusDiv.classList.remove('hidden');
               statusDiv.className = "mb-4 p-4 bg-red-100 text-red-700 rounded-xl border border-red-200 flex items-center gap-2";
-              statusDiv.innerHTML = `❌ Lỗi kết nối`;
+              statusDiv.innerHTML = `❌ Lỗi kết nối! Vui lòng thử lại.`;
             });
   }
 
@@ -284,20 +349,54 @@
     });
   }
   function sendFeedback() {
-    const content = document.getElementById('feedbackContent').value;
+    const content = document.getElementById('feedbackContent').value.trim();
     const status = document.getElementById('feedbackStatus');
     const btn = document.getElementById('btnSendFeedback');
 
-    if(!content.trim()) { status.innerText = "⚠️ Nhập nội dung!"; status.className = "mt-3 text-red-500 font-bold text-center"; return; }
+    if(!content) {
+      status.innerText = "⚠️ Vui lòng nhập nội dung!";
+      status.className = "mt-3 text-red-500 font-bold text-center";
+      return;
+    }
 
-    btn.disabled = true; btn.innerHTML = "⏳ Đang gửi...";
-    fetch('/api/send-feedback', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content: content, rating: currentRating }) })
-            .then(r => r.ok ? r.json() : Promise.reject())
-            .then(data => {
-              status.innerText = "✅ " + data.message; status.className = "mt-3 text-green-600 font-bold text-center";
-              btn.innerHTML = "Đã Gửi ✨"; setTimeout(() => { closeModal('feedbackModal'); btn.disabled = false; btn.innerText = "Gửi Đánh Giá 🚀"; }, 2000);
+    btn.disabled = true;
+    btn.innerHTML = "⏳ Đang gửi...";
+
+    console.log('Sending feedback:', { content, rating: currentRating }); // DEBUG
+
+    fetch('/api/send-feedback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: content, rating: currentRating })
+    })
+            .then(response => {
+              console.log('Feedback response status:', response.status); // DEBUG
+              return response.json().then(data => ({ status: response.status, data }));
             })
-            .catch(() => { status.innerText = "❌ Lỗi!"; status.className = "mt-3 text-red-500 font-bold text-center"; btn.disabled = false; btn.innerText = "Gửi Lại"; });
+            .then(result => {
+              if (result.status === 200) {
+                status.innerText = "✅ " + result.data.message;
+                status.className = "mt-3 text-green-600 font-bold text-center";
+                btn.innerHTML = "Đã Gửi ✨";
+                setTimeout(() => {
+                  closeModal('feedbackModal');
+                  btn.disabled = false;
+                  btn.innerText = "Gửi Đánh Giá 🚀";
+                }, 2000);
+              } else {
+                status.innerText = "❌ " + (result.data.error || "Có lỗi");
+                status.className = "mt-3 text-red-500 font-bold text-center";
+                btn.disabled = false;
+                btn.innerText = "Gửi Lại";
+              }
+            })
+            .catch(error => {
+              console.error('Feedback error:', error); // DEBUG
+              status.innerText = "❌ Lỗi kết nối!";
+              status.className = "mt-3 text-red-500 font-bold text-center";
+              btn.disabled = false;
+              btn.innerText = "Gửi Lại";
+            });
   }
 </script>
 </body>
