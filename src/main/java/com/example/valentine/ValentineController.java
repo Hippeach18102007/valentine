@@ -42,7 +42,14 @@ public class ValentineController {
         return "home";
     }
 
-    // 4. Xử lý Gửi thư tình (Form thường)
+    // 4. Đăng xuất
+    @GetMapping("/logout")
+    public String logout(HttpSession session) {
+        session.invalidate();
+        return "redirect:/";
+    }
+
+    // 5. API GỬI QUÀ (AJAX)
     @PostMapping("/api/send-prize")
     @ResponseBody
     public ResponseEntity<?> sendPrize(@RequestBody Map<String, String> payload, HttpSession session) {
@@ -69,11 +76,40 @@ public class ValentineController {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
-    // ... Các phần cũ giữ nguyên ...
 
-    // ============================================================
-    // 👇 API MỚI: Nhận đánh giá từ người dùng
-    // ============================================================
+    // 6. API GỬI LỜI CHÚC (AJAX) - ENDPOINT MỚI
+    @PostMapping("/api/send-wish")
+    @ResponseBody
+    public ResponseEntity<?> sendWish(@RequestBody Map<String, String> payload, HttpSession session) {
+        String senderEmail = (String) session.getAttribute("userEmail");
+
+        if (senderEmail == null) {
+            return ResponseEntity.status(401).body(Map.of("error", "Vui lòng đăng nhập!"));
+        }
+
+        String loverEmail = payload.get("loverEmail");
+        String message = payload.get("message");
+
+        if (loverEmail == null || loverEmail.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Email người nhận không được để trống!"));
+        }
+
+        if (message == null || message.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Lời nhắn không được để trống!"));
+        }
+
+        System.out.println("LOG: " + senderEmail + " gửi thư tình tới " + loverEmail);
+
+        try {
+            emailService.sendLoveLetter(loverEmail, message, senderEmail);
+            return ResponseEntity.ok(Map.of("message", "Gửi thành công! 💌"));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body(Map.of("error", "Lỗi gửi email: " + e.getMessage()));
+        }
+    }
+
+    // 7. API GỬI FEEDBACK (AJAX)
     @PostMapping("/api/send-feedback")
     @ResponseBody
     public ResponseEntity<?> sendFeedback(@RequestBody Map<String, Object> payload, HttpSession session) {
@@ -95,7 +131,7 @@ public class ValentineController {
 
         try {
             emailService.sendFeedbackEmail(adminEmail, userEmail, content, rating);
-            return ResponseEntity.ok(Map.of("message", "Cảm ơn bạn!"));
+            return ResponseEntity.ok(Map.of("message", "Cảm ơn bạn đã đánh giá!"));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }

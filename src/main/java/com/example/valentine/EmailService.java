@@ -48,7 +48,7 @@ public class EmailService {
 
         try {
             CreateEmailResponse data = resend.emails().send(params);
-            System.out.println("Email sent. ID: " + data.getId());
+            System.out.println("Email seant. ID: " + data.getId());
         } catch (ResendException e) {
             e.printStackTrace();
             throw new RuntimeException("Lỗi gửi email: " + e.getMessage());
