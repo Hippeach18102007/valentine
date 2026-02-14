@@ -7,10 +7,14 @@ import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
 public class SecurityConfig {
-
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http.csrf(csrf -> csrf.disable()); // Tắt CSRF để test Ajax
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        http
+                .csrf(csrf -> csrf.disable()) // Quan trọng: Tắt CSRF để JavaScript gửi được POST
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/**").permitAll() // Cho phép gọi API gửi mail
+                        .anyRequest().permitAll()
+                );
         return http.build();
     }
 }
