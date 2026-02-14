@@ -9,16 +9,8 @@ import org.springframework.security.web.SecurityFilterChain;
 public class SecurityConfig {
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
-                // Disable CSRF for testing AJAX endpoints
-                .csrf(csrf -> csrf.disable())
-
-                // Allow all requests without authentication
-                .authorizeHttpRequests(auth -> auth
-                        .anyRequest().permitAll()
-                );
-
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        http.csrf(csrf -> csrf.disable()); // Tắt CSRF để test Ajax
         return http.build();
     }
 }
